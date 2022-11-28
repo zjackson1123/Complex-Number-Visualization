@@ -1,14 +1,17 @@
 ﻿using System;
 using System.ComponentModel;
 using System.Drawing;
+using System.Drawing.Imaging;
 
 class Program
 {
-    static void Main()
+    static void Main(string[] args)
     {
+        Application.EnableVisualStyles();
         string welcome = "---CS4306 Bonus Project | Zachary Jackson---";
         Console.WriteLine(welcome);
         BMP bmp = new();
+        Console.ReadLine();
     }
 
     public class BMP
@@ -20,21 +23,24 @@ class Program
             Size_X = GetInt("Size_X", 0);
             Size_Y = GetInt("Size_Y", 0);
             LoopCount = GetInt("LoopCount", 9);
-            Dx = (Rect.X1 - Rect.X0) / Size_X;
-            Dy = (Rect.Y1 - Rect.Y0) / Size_Y;
+            dX = (Rect.X1 - Rect.X0) / Size_X;
+            dY = (Rect.Y1 - Rect.Y0) / Size_Y;
             coords = GetCoords(Rect);
-            //f1 = new(this);
-            //f1.Show();
+            Task.Run(() =>
+            {
+                f1 = new Form1(this);
+                Application.Run(f1);
+            });
         }
         public Rectangle Rect = new();
-        //public Form1 f1;
+        public Form1 f1;
         public float cX { get; private set; }
         public float cY { get; private set; }
         public int Size_X { get; private set; }
         public int Size_Y { get; private set; }
         public int LoopCount { get; private set; }
-        public float Dx { get; private set; }
-        public float Dy { get; private set; }
+        public float dX { get; private set; }
+        public float dY { get; private set; }
 
         public Coord[] coords;
 
@@ -46,16 +52,17 @@ class Program
                 float y0 = GetFloat("Y0");
                 float x1 = GetFloat("X1");
                 float y1 = GetFloat("Y1");
+                float temp;
 
                 if (x0 > x1)
                 {
-                    float temp = x0;
+                    temp = x0;
                     x0 = x1;
                     x1 = temp;
                 }
                 if (y0 > y1)
                 {
-                    float temp = y0;
+                    temp = y0;
                     y0 = y1;
                     y1 = temp;
                 }
@@ -64,7 +71,6 @@ class Program
                 Y0 = y0;
                 X1 = x1;
                 Y1 = y1;
-
             }
 
             public float X0 { get; private set; }
@@ -77,120 +83,123 @@ class Program
 
         public class Coord
         {
-            public float X, Y;
-            public Coord(float x, float y)
+            public int X, Y;
+            public float X_Prime, Y_Prime;
+            
+            public Coord(int x, int y, float x_p, float y_p)
             {
                 X = x;
                 Y = y;
+                X_Prime= x_p;
+                Y_Prime= y_p;
             }
         }
 
-        /*public partial class Form1 : Form
+        public partial class Form1 : Form
         {
-            //public Form1(BMP bmp)
-            //{
-            //    pb.Image = bmp.GenerateBitmap();
-              //  this.Controls.Add(pb);
-            //}
-            private PictureBox pb = new PictureBox();
+            public Form1(BMP bmp)
+            {
+                Width = 1000;
+                Height = 1000;
+                img.Height = bmp.Size_X;
+                img.Width = bmp.Size_Y;
+                img.BackColor = Color.White;
+                Controls.Add(img);
+                Bmp = bmp;
+            }
+            private PictureBox img = new PictureBox();
+            private BMP Bmp;
             protected override void OnLoad(EventArgs e)
             {
                 base.OnLoad(e);
-                pb.Show();
+                img.Paint += (s, ev) =>
+                {
+                    Bmp.GenerateBitmap(ev.Graphics);
+                };
             }
-        }*/
+
+        }
 
         private Coord[] GetCoords(Rectangle rect)
         {
-            int len = Convert.ToInt32(((rect.X1 - rect.X0) / Dx) * ((rect.Y1 - rect.Y0) / Dy));
-            Coord[] coords = new Coord[len];
-            float x = rect.X0;
-            float y = rect.Y0;
             int index = 0;
-            while (x < rect.X1 || y < rect.Y1)
+            int len = Convert.ToInt32(Size_X * Size_Y);
+            Coord[] coords = new Coord[len];
+            float x0 = rect.X0;
+            float y0 = rect.Y0;
+            for (int m = 0; m < Size_X; m++)
             {
-                if (x <= rect.X1)
+                for (int n = 0; n < Size_Y; n++)
                 {
-                    x += Dx;
-                }
-                if (y <= rect.Y1)
-                {
-                    y += Dy;
-                }
-                float x_prime = (x + Size_X * Dx) * (x + Size_X * Dx) - (y + Size_Y * Dy) * (y + Size_Y * Dy) + cX;
-                float y_prime = 2 * (x + Size_X * Dx) * (y + Size_Y * Dy) + cY;
-                for (int i = 0; i < LoopCount; i++)
-                {
-                    x_prime = (x_prime + Size_X * Dx) * (x_prime + Size_X * Dx) - (y_prime + Size_Y * Dy) * (y_prime + Size_Y * Dy) + cX;
-                    y_prime = 2 * ((y_prime + Size_X * Dx) * (y + Size_Y * Dy)) + cY;
-                    coords[index++] = new Coord(x_prime, y_prime);
+                    float c1 = x0 + m * dX;
+                    float c2 = y0 + n * dY;
+                    float x_prime = (c1 * c1) - (c2 * c2) + cX;
+                    float y_prime = (2 * (c1 * c2)) + cY;
+                    for (int i = 0; i < LoopCount; i++)
+                    {
+                        x_prime = (x_prime + m * dX) * (x_prime + m * dX) - (y_prime + n * dY) * (y_prime + n * dY) + cX;
+                        y_prime = 2 * (y_prime + m * dX) * c2 + cY;
+                    }
+                    coords[index++] = new Coord(m, n, x_prime, y_prime);
                 }
             }
-
             return coords;
         }
 
-        public System.Drawing.Bitmap GenerateBitmap()
+        public void GenerateBitmap(Graphics gr)
         {
-
-            Bitmap bmp = new Bitmap((int)Rect.X1, (int)Rect.Y1);
-            System.Drawing.Rectangle rect = new(0, 0, bmp.Width, bmp.Height);
-            System.Drawing.Imaging.BitmapData bmpdata =
-                bmp.LockBits(rect, System.Drawing.Imaging.ImageLockMode.ReadWrite, bmp.PixelFormat);
-            IntPtr ptr = bmpdata.Scan0;
-            int bytes = Math.Abs(bmpdata.Stride) * bmp.Height;
-            byte[] rgbVals = new byte[bytes];
-            System.Runtime.InteropServices.Marshal.Copy(ptr, rgbVals, 0, bytes);
-            int index = 0;
-            for (int i = 0; i < coords.Length; i++)
+            Bitmap bmp = new Bitmap(Size_X, Size_Y);
+            
+            for(int i = 0; i < coords.Length; i++)
             {
-                float xP = coords[i].X;
-                float yP = coords[i].Y;
-                rgbVals[index] = 255;
+                float xP = coords[i].X_Prime;
+                float yP = coords[i].Y_Prime;
+                int r = 0; int g = 0; int b = 0;
                 switch (xP)
                 {
                     case float.PositiveInfinity:
-                        rgbVals[index + 1] = 255; break;
+                        r = 255; break;
                     case var exp when xP > LoopCount:
-                        rgbVals[index + 1] = 128; break;
-                    case var exp when (xP < LoopCount && xP >= 1):
-                        rgbVals[index + 1] = 64; break;
-                    case var exp when (xP < 1 && xP >= 0):
-                        rgbVals[index + 1] = 0; rgbVals[i + 3] = 0; break;
+                        r = 128; break;
+                    case var exp when (xP <= LoopCount && xP >= 0.001):
+                        r = 64; break;
+                    case var exp when (xP < 0.001 && xP >= 0):
+                        b = 0; r = 0; break;
                     case float.NegativeInfinity:
-                        rgbVals[index + 3] = 255; break;
+                        b = 255; break;
                     case var exp when xP < (LoopCount * -1):
-                        rgbVals[index + 3] = 128; break;
-                    case var exp when (xP >= (LoopCount * -1) && xP <= -1):
-                        rgbVals[index + 3] = 64; break;
-                    case var exp when xP > -1:
-                        rgbVals[index + 1] = 0; rgbVals[i + 2] = 0; break;
+                        b = 128; break;
+                    case var exp when (xP >= (LoopCount * -1) && xP <= -0.001):
+                        b = 64; break;
+                    case var exp when xP > -0.001:
+                        r = 0; b = 0; break;
                 }
                 switch (yP)
                 {
                     case float.PositiveInfinity:
-                        rgbVals[index + 2] = 255; break;
+                        g = 255; break;
                     case var exp when yP > LoopCount:
-                        rgbVals[index + 2] = 200; break;
-                    case var exp when (yP <= LoopCount && yP >= 1):
-                        rgbVals[index + 2] = 160; break;
-                    case var exp when (yP < 1 && yP >= 0):
-                        rgbVals[index + 2] = 0; break;
+                        g = 200; break;
+                    case var exp when (yP <= LoopCount && yP >= 0.001):
+                        g = 160; break;
+                    case var exp when (yP < 0.001 && yP >= 0):
+                        g = 0; break;
                     case float.NegativeInfinity:
-                        rgbVals[index + 2] = 128; break;
+                        g = 128; break;
                     case var exp when yP < (LoopCount * -1):
-                        rgbVals[index + 2] = 90; break;
-                    case var exp when (yP > (LoopCount * -1) && yP <= -1):
-                        rgbVals[index + 2] = 64; break;
-                    case var exp when yP > -1:
-                        rgbVals[index + 2] = 0; break;
+                        g = 90; break;
+                    case var exp when (yP >= (LoopCount * -1) && yP <= -0.001):
+                        g = 64; break;
+                    case var exp when yP > -0.001:
+                        g = 0; break;
 
                 }
-                index += 4;
+                Color color = Color.FromArgb(r, g, b);
+                SolidBrush brush = new SolidBrush(color);
+                bmp.SetPixel(coords[i].X, coords[i].Y, color);             
             }
-            System.Runtime.InteropServices.Marshal.Copy(rgbVals, 0, ptr, bytes);
-            bmp.UnlockBits(bmpdata);
-            return bmp;
+            gr.DrawImage(bmp, 0, 0);
+            bmp.Save(Directory.GetCurrentDirectory() + "\\img01.png", ImageFormat.Png);
         }
 
         private int GetInt(string name, int constraint)
