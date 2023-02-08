@@ -8,8 +8,7 @@ class Program
     static void Main(string[] args)
     {
         Application.EnableVisualStyles();
-        string welcome = "---CS4306 Bonus Project | Zachary Jackson---";
-        Console.WriteLine(welcome);
+        Console.WriteLine("---CS4306 Bonus Project | Zachary Jackson---");
         BMP bmp = new();
         Console.ReadLine();
     }
@@ -18,11 +17,22 @@ class Program
     {
         public BMP()
         {
-            cX = GetFloat("CX");
-            cY = GetFloat("CY");
-            Size_X = GetInt("Size_X", 0);
-            Size_Y = GetInt("Size_Y", 0);
-            LoopCount = GetInt("LoopCount", 9);
+            if(Rect.defaultsEnabled)
+            {
+                cX = .1f;
+                cY = .2f;
+                Size_X = 1024;
+                Size_Y = 1024;
+                LoopCount = 12;
+            }
+            else
+            {
+                cX = GetFloat("CX");
+                cY = GetFloat("CY");
+                Size_X = GetInt("Size_X", 0);
+                Size_Y = GetInt("Size_Y", 0);
+                LoopCount = GetInt("LoopCount", 9);
+            }
             dX = (Rect.X1 - Rect.X0) / Size_X;
             dY = (Rect.Y1 - Rect.Y0) / Size_Y;
             coords = GetCoords(Rect);
@@ -48,35 +58,50 @@ class Program
         {
             public Rectangle()
             {
-                float x0 = GetFloat("X0");
-                float y0 = GetFloat("Y0");
-                float x1 = GetFloat("X1");
-                float y1 = GetFloat("Y1");
-                float temp;
-
-                if (x0 > x1)
+                float x0, y0, x1, y1;
+                if(useDefaults())
                 {
-                    temp = x0;
-                    x0 = x1;
-                    x1 = temp;
+                    defaultsEnabled = true;
+                    x0 = -1.0f;
+                    y0 = -1.0f;
+                    x1 = 1.0f;
+                    y1 = 1.0f;
                 }
-                if (y0 > y1)
+                else
                 {
-                    temp = y0;
-                    y0 = y1;
-                    y1 = temp;
-                }
+                    defaultsEnabled = false;
+                    x0 = GetFloat("X0");
+                    y0 = GetFloat("Y0");
+                    x1 = GetFloat("X1");
+                    y1 = GetFloat("Y1");
+                    float temp;
 
-                X0 = x0;
-                Y0 = y0;
-                X1 = x1;
-                Y1 = y1;
+                    if (x0 > x1)
+                    {
+                        temp = x0;
+                        x0 = x1;
+                        x1 = temp;
+                    }
+                    if (y0 > y1)
+                    {
+                        temp = y0;
+                        y0 = y1;
+                        y1 = temp;
+                    }
+
+                }
+                 X0 = x0;
+                 Y0 = y0;
+                 X1 = x1;
+                 Y1 = y1;
+
             }
 
             public float X0 { get; private set; }
             public float Y0 { get; private set; }
             public float X1 { get; private set; }
             public float Y1 { get; private set; }
+            public bool defaultsEnabled { get; private set; }
 
 
         }
@@ -223,6 +248,15 @@ class Program
             }
             Console.WriteLine("Invalid entry for " + name + ", must be a floating point number");
             return GetFloat(name);
+        }
+        private static bool useDefaults()
+        {
+            Console.WriteLine("Use default values for visualization (Y/N)?");
+            if (Console.ReadLine().ToLower() == "y")
+            {
+                return true;
+            }
+            return false;
         }
     }
 
